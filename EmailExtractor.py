@@ -16,6 +16,7 @@ import sqlite3
 from sqlite3 import Error
 import sys
 import re
+import csv
 from fake_useragent import UserAgent
 from socket import timeout
 from urllib.error import HTTPError, URLError
@@ -27,7 +28,7 @@ count_email_in_phrase = 0
 
 # Menú Principal
 def menu():
-    	
+
 	global count_email_in_phrase
 	count_email_in_phrase = 0
 
@@ -77,7 +78,7 @@ def menu():
 			frase = str(input("Enter a phrase to search - Ingrese una frase a buscar: "))
 			print ("***Warning: The amount of results chosen impacts the execution time***")
 			print ("*** Advertencia: La cantidad de resultados elejidos impacta el tiempo de ejecucion")
-			cantRes = int(input("Number of results in Google - Cantiad de resultados en Google: ")) 
+			cantRes = int(input("Number of results in Google - Cantiad de resultados en Google: "))
 			print ("")
 			extractFraseGoogle(frase, cantRes)
 			input("Press enter key to continue")
@@ -88,14 +89,14 @@ def menu():
 			print("Developing...")
 			input("Press enter key to continue")
 			menu()
-		
+
 		elif (opcion == "5"):
 			print ("")
 			print ("1 - Select a phrase - Seleccionar una frase")
 			print ("2 - Insert a URL")
 			print ("3 - All emails - Todos los correos")
 			opcListar = input("Enter option - Ingrese Opcion: ")
-			
+
 			if (opcListar == "1"):
 				listarPorFrase("Emails.db")
 
@@ -116,19 +117,19 @@ def menu():
 			print("2 - Save emails from a URL - Guardar correos de una URL")
 			print("3 - Save all emails - Guardar todos los correos")
 			opcGuardar = input("Enter Option - Ingrese Opcion: ")
-			
+
 			if(opcGuardar == "1"):
 				frase = str(input("Enter phrase: "))
 				guardarFrase("Emails.db", frase)
-				
+
 			elif(opcGuardar == "2"):
 				print("Example URL: http://www.pythondiario.com")
 				url = str(input("Insert URL: "))
 				guardarUrl("Emails.db", url)
-				
+
 			elif(opcGuardar == "3"):
 				guardarAll("Emails.db")
-				
+
 			else:
 				print("Incorrect option, return to the menu...")
 				time.sleep(2)
@@ -145,7 +146,7 @@ def menu():
 				print("Example URL: http://www.pythondiario.com")
 				url = str(input("Insert URL: "))
 				deleteUrl("Emails.db", url.strip())
-			
+
 			elif(op == "2"):
 				phrase = str(input("Insert Phrase: "))
 				deletePhrase("Emails.db", phrase.strip())
@@ -157,17 +158,17 @@ def menu():
 				print("Incorrect option, return to the menu...")
 				time.sleep(2)
 				menu()
-		
+
 		elif (opcion == "8"):
 			sys.exit(0)
 
-		else:			
+		else:
 			print("")
 			print ("Select a correct option - Seleccione un opcion correcta")
 			time.sleep(3)
 			clear()
 			menu()
-	
+
 	except KeyboardInterrupt:
 		input("Press return to continue")
 		menu()
@@ -213,16 +214,16 @@ def searchEmail(db_file, email, frase):
 	finally:
 		conn.close()
 
-# Crea tabla principal		
+# Crea tabla principal
 def crearTabla(db_file, delete = False):
 	try:
 		conn = sqlite3.connect(db_file)
 		c = conn.cursor()
-		
-		if(delete == True):
-			c.execute('drop table if exists emails')			
 
-		sql = '''create table if not exists emails 
+		if(delete == True):
+			c.execute('drop table if exists emails')
+
+		sql = '''create table if not exists emails
 				(ID INTEGER PRIMARY KEY AUTOINCREMENT,
 				 phrase varchar(500) NOT NULL,
 				 email varchar(200) NOT NULL,
@@ -251,43 +252,44 @@ def guardarUrl(db_file, url):
 			print("There are no emails to erase")
 			input("Press enter to continue")
 			menu()
-			
+
 		else:
-			nameFile = str(input("Name of the file: "))
-			print("")
-			print("Save file, please wait...")
-			
-			f = open(nameFile.strip() + ".txt", "w")
-		
-			c.execute('SELECT * FROM emails WHERE url = "' + url.strip() + '"')
-			
-			count = 0
-			
-			for i in c:
-				count += 1
-				f.write("")
-				f.write("Number: " + str(count) + '\n')
-				f.write("Phrase: " + str(i[1]) + '\n')
-				f.write("Email: " + str(i[2]) + '\n')
-				f.write("Url: " + str(i[3]) + '\n')
-				f.write("-------------------------------------------------------------------------------" + '\n')
-				
-			f.close()
-			
+		    header=['count','phrase','email','url']
+		    nameFile = str(input("Name of the file: "))
+		    csvFile=nameFile+'.csv'
+		    print(csvFile)
+		    print("")
+		    print("Save file, please wait...")
+		    f = open(nameFile.strip() + ".txt", "w")
+		    c.execute('SELECT * FROM emails WHERE url = "' + url.strip() + '"')
+		    with open(csvFile, 'w', newline='') as register_file:
+		        register_writer = csv.writer(register_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+		        count = 0
+		        for i in c:
+		            count += 1
+		            register_writer.writerow([str(count),str(i[1]),str(i[2]),str(i[3])])
+		            register_writer.writerow(['Spam', 'Lovely Spam', 'Wonderful Spam'])
+		            f.write("")
+		            f.write("Number: " + str(count) + '\n')
+		            f.write("Phrase: " + str(i[1]) + '\n')
+		            f.write("Email: " + str(i[2]) + '\n')
+		            f.write("Url: " + str(i[3]) + '\n')
+		            f.write("-------------------------------------------------------------------------------" + '\n')
+		    f.close()
 		conn.close()
 		input("Press enter to continue")
 		menu()
-		
+
 	except Error as e:
 		print(e)
 		input("Press enter to continue")
 		menu()
-		
+
 	except Exception as o:
 		print(o)
 		input("Press enter to continue")
 		menu()
-		
+
 	finally:
 		conn.close()
 
@@ -303,43 +305,42 @@ def guardarFrase(db_file, frase):
 			print("There are no emails to erase")
 			input("Press enter to continue")
 			menu()
-			
+
 		else:
-			nameFile = str(input("Name of the file: "))
-			print("")
-			print("Save file, please wait...")
-			
-			f = open(nameFile.strip() + ".txt", "w")
-		
-			c.execute('SELECT * FROM emails WHERE phrase = "' + frase.strip() + '"')
-			
-			count = 0
-			
-			for i in c:
-				count += 1
-				f.write("")
-				f.write("Number: " + str(count) + '\n')
-				f.write("Phrase: " + str(i[1]) + '\n')
-				f.write("Email: " + str(i[2]) + '\n')
-				f.write("Url: " + str(i[3]) + '\n')
-				f.write("-------------------------------------------------------------------------------" + '\n')
-				
-			f.close()
-			
+		    nameFile = str(input("Name of the file: "))
+		    csvFile=nameFile+'.csv'
+		    print("file: "+ csvFile)
+		    print("")
+		    print("Save file, please wait...")
+		    f = open(nameFile.strip() + ".txt", "w")
+		    c.execute('SELECT * FROM emails WHERE phrase = "' + frase.strip() + '"')
+		    with open(csvFile, 'w', newline='') as register_file:
+		        register_writer = csv.writer(register_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+		        count = 0
+		        for i in c:
+		            count += 1
+		            register_writer.writerow([str(count),str(i[1]),str(i[2]),str(i[3])])
+		            f.write("")
+		            f.write("Number: " + str(count) + '\n')
+		            f.write("Phrase: " + str(i[1]) + '\n')
+		            f.write("Email: " + str(i[2]) + '\n')
+		            f.write("Url: " + str(i[3]) + '\n')
+		            f.write("-------------------------------------------------------------------------------" + '\n')
+		f.close()
 		conn.close()
 		input("Press enter to continue")
 		menu()
-			
+
 	except Error as e:
 		print(e)
 		input("Press enter to continue")
 		menu()
-		
+
 	except Exception as o:
 		print(o)
 		input("Press enter to continue")
 		menu()
-		
+
 	finally:
 		conn.close()
 
@@ -355,29 +356,28 @@ def guardarAll(db_file):
 			print("There are no emails to erase")
 			input("Press enter to continue")
 			menu()
-			
+
 		else:
-			nameFile = str(input("Name of the file: "))
-			print("")
-			print("Save file, please wait...")
-			
-			f = open(nameFile + ".txt", "w")
-		
-			c.execute('SELECT * FROM emails')
-			
-			count = 0
-			
-			for i in c:
-				count += 1
-				f.write("")
-				f.write("Number: " + str(count) + '\n')
-				f.write("Phrase: " + str(i[1]) + '\n')
-				f.write("Email: " + str(i[2]) + '\n')
-				f.write("Url: " + str(i[3]) + '\n')
-				f.write("-------------------------------------------------------------------------------" + '\n')
-				
-			f.close()
-			
+		    nameFile = str(input("Name of the file: "))
+		    csvFile=nameFile+'.csv'
+		    print("file: "+ csvFile)
+		    print("")
+		    print("Save file, please wait...")
+		    f = open(nameFile.strip() + ".txt", "w")
+		    c.execute('SELECT * FROM emails')
+		    with open(csvFile, 'w', newline='') as register_file:
+		        register_writer = csv.writer(register_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+		        count = 0
+		        for i in c:
+		            count += 1
+		            register_writer.writerow([str(count),str(i[1]),str(i[2]),str(i[3])])
+		            f.write("")
+		            f.write("Number: " + str(count) + '\n')
+		            f.write("Phrase: " + str(i[1]) + '\n')
+		            f.write("Email: " + str(i[2]) + '\n')
+		            f.write("Url: " + str(i[3]) + '\n')
+		            f.write("-------------------------------------------------------------------------------" + '\n')
+		f.close()
 		conn.close()
 		
 		input("Press enter to continue")
